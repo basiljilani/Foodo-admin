@@ -15,12 +15,12 @@ export interface RestaurantFormData {
   name: string;
   description: string;
   image: string;
-  openingHours: string;
+  opening_hours: string;
   tags: string[];
   category: string;
-  priceRange: string;
+  price_range: string;
   distance: string;
-  estimatedTime: string;
+  estimated_time: string;
   featured: boolean;
   rating?: number;
 }
@@ -123,12 +123,12 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
         name: formData.get('name') as string,
         description: formData.get('description') as string,
         image: imageUrl,
-        openingHours: formData.get('openingHours') as string,
+        opening_hours: formData.get('openingHours') as string,
         tags: selectedTags,
         category: formData.get('category') as string,
-        priceRange: formData.get('priceRange') as string,
+        price_range: formData.get('priceRange') as string,
         distance: formData.get('distance') as string,
-        estimatedTime: formData.get('estimatedTime') as string,
+        estimated_time: formData.get('estimatedTime') as string,
         featured: formData.get('featured') === 'on',
         rating: parseFloat(formData.get('rating') as string) || undefined,
       };
@@ -302,7 +302,7 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
                             <select
                               name="priceRange"
                               id="priceRange"
-                              defaultValue={initialData?.priceRange || '$$'}
+                              defaultValue={initialData?.price_range || '$$'}
                               className="input mt-1"
                             >
                               {priceRanges.map(range => (
@@ -322,7 +322,7 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
                               name="openingHours"
                               id="openingHours"
                               placeholder="e.g. 11:00 AM - 11:00 PM"
-                              defaultValue={initialData?.openingHours}
+                              defaultValue={initialData?.opening_hours}
                               className="input mt-1"
                             />
                           </div>
@@ -336,7 +336,7 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
                               name="estimatedTime"
                               id="estimatedTime"
                               placeholder="e.g. 20-30 min"
-                              defaultValue={initialData?.estimatedTime}
+                              defaultValue={initialData?.estimated_time}
                               className="input mt-1"
                             />
                           </div>

@@ -6,30 +6,32 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 
 interface Restaurant {
-  id: string;
+  id: number;
   name: string;
+  description: string;
   image: string;
-  rating: number;
-  openingHours: string;
+  opening_hours: string;
   tags: string[];
   category: string;
-  priceRange: string;
-  description: string;
+  price_range: string;
   distance: string;
-  estimatedTime: string;
+  estimated_time: string;
   featured: boolean;
+  rating: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface RestaurantFormData {
   name: string;
   description: string;
   image: string;
-  openingHours: string;
+  opening_hours: string;
   tags: string[];
   category: string;
-  priceRange: string;
+  price_range: string;
   distance: string;
-  estimatedTime: string;
+  estimated_time: string;
   featured: boolean;
   rating?: number; // Make rating optional
 }
@@ -228,7 +230,7 @@ export default function Restaurants() {
                 </button>
                 <button
                   className="btn btn-danger btn-sm"
-                  onClick={() => handleDeleteRestaurant(restaurant.id)}
+                  onClick={() => handleDeleteRestaurant(restaurant.id.toString())}
                 >
                   Delete
                 </button>
@@ -253,11 +255,11 @@ export default function Restaurants() {
               <div className="mt-4 space-y-2">
                 <div className="flex items-center text-sm text-surface-600">
                   <ClockIcon className="h-4 w-4 mr-2" />
-                  {restaurant.openingHours}
+                  {restaurant.opening_hours}
                 </div>
                 <div className="flex items-center text-sm text-surface-600">
                   <MapPinIcon className="h-4 w-4 mr-2" />
-                  {restaurant.distance} • {restaurant.estimatedTime}
+                  {restaurant.distance} • {restaurant.estimated_time}
                 </div>
               </div>
 
@@ -271,7 +273,7 @@ export default function Restaurants() {
                   </span>
                 ))}
                 <span className="px-2 py-1 bg-surface-100 text-surface-700 rounded text-xs">
-                  {restaurant.priceRange}
+                  {restaurant.price_range}
                 </span>
               </div>
             </div>
