@@ -130,7 +130,7 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
         distance: formData.get('distance') as string,
         estimatedTime: formData.get('estimatedTime') as string,
         featured: formData.get('featured') === 'on',
-        rating: parseFloat(formData.get('rating') as string) || 4.5,
+        rating: parseFloat(formData.get('rating') as string) || undefined,
       };
 
       if (!data.name || !data.description) {

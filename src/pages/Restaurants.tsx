@@ -31,7 +31,7 @@ interface RestaurantFormData {
   distance: string;
   estimatedTime: string;
   featured: boolean;
-  rating: number;
+  rating?: number; // Make rating optional
 }
 
 const categories = [
@@ -46,12 +46,11 @@ const categories = [
 ];
 
 export default function Restaurants() {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
 
   // Fetch restaurants
   useEffect(() => {
@@ -76,8 +75,13 @@ export default function Restaurants() {
     }
   };
 
-  const handleSubmit = async (data: RestaurantFormData) => {
+  const handleSubmit = async (formData: RestaurantFormData) => {
     try {
+      const data = {
+        ...formData,
+        rating: formData.rating || 4.5, // Provide default rating if undefined
+      };
+
       if (editingRestaurant) {
         // Handle update
         const { error: updateError } = await supabase
@@ -105,6 +109,7 @@ export default function Restaurants() {
       }
 
       setIsFormOpen(false);
+      setEditingRestaurant(null);
       fetchRestaurants();
     } catch (error) {
       console.error('Error saving restaurant:', error);
