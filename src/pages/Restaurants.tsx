@@ -20,6 +20,20 @@ interface Restaurant {
   featured: boolean;
 }
 
+interface RestaurantFormData {
+  name: string;
+  description: string;
+  image: string;
+  openingHours: string;
+  tags: string[];
+  category: string;
+  priceRange: string;
+  distance: string;
+  estimatedTime: string;
+  featured: boolean;
+  rating: number;
+}
+
 const categories = [
   { id: 'all', name: 'All', icon: '🍽️' },
   { id: 'biryani', name: 'Biryani', icon: '🍚' },
@@ -37,7 +51,7 @@ export default function Restaurants() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch restaurants
   useEffect(() => {
@@ -59,74 +73,42 @@ export default function Restaurants() {
     } catch (error) {
       console.error('Error fetching restaurants:', error);
       toast.error('Failed to fetch restaurants');
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleAddRestaurant = async (data: Restaurant) => {
+  const handleSubmit = async (data: RestaurantFormData) => {
     try {
-      const { error } = await supabase
-        .from('restaurants')
-        .insert([{
-          name: data.name,
-          description: data.description,
-          image: data.image,
-          opening_hours: data.openingHours,
-          tags: data.tags,
-          category: data.category,
-          price_range: data.priceRange,
-          distance: data.distance,
-          estimated_time: data.estimatedTime,
-          featured: data.featured,
-          rating: data.rating
-        }]);
+      if (editingRestaurant) {
+        // Handle update
+        const { error: updateError } = await supabase
+          .from('restaurants')
+          .update({
+            ...data,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingRestaurant.id);
 
-      if (error) {
-        throw error;
+        if (updateError) throw updateError;
+        toast.success('Restaurant updated successfully!');
+      } else {
+        // Handle create
+        const { error: insertError } = await supabase
+          .from('restaurants')
+          .insert([{
+            ...data,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }]);
+
+        if (insertError) throw insertError;
+        toast.success('Restaurant added successfully!');
       }
 
-      toast.success('Restaurant added successfully');
       setIsFormOpen(false);
       fetchRestaurants();
     } catch (error) {
-      console.error('Error adding restaurant:', error);
-      toast.error('Failed to add restaurant');
-    }
-  };
-
-  const handleEditRestaurant = async (data: Restaurant) => {
-    if (!editingRestaurant?.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('restaurants')
-        .update({
-          name: data.name,
-          description: data.description,
-          image: data.image,
-          opening_hours: data.openingHours,
-          tags: data.tags,
-          category: data.category,
-          price_range: data.priceRange,
-          distance: data.distance,
-          estimated_time: data.estimatedTime,
-          featured: data.featured,
-          rating: data.rating
-        })
-        .eq('id', editingRestaurant.id);
-
-      if (error) {
-        throw error;
-      }
-
-      toast.success('Restaurant updated successfully');
-      setIsFormOpen(false);
-      setEditingRestaurant(null);
-      fetchRestaurants();
-    } catch (error) {
-      console.error('Error updating restaurant:', error);
-      toast.error('Failed to update restaurant');
+      console.error('Error saving restaurant:', error);
+      toast.error('Failed to save restaurant');
     }
   };
 
@@ -299,7 +281,7 @@ export default function Restaurants() {
           setIsFormOpen(false);
           setEditingRestaurant(null);
         }}
-        onSubmit={editingRestaurant ? handleEditRestaurant : handleAddRestaurant}
+        onSubmit={handleSubmit}
         initialData={editingRestaurant || undefined}
       />
     </div>
