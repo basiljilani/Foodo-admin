@@ -220,14 +220,15 @@ export default function Menus() {
           All Categories
         </button>
         {sampleCategories.map((category) => (
-          <button
-            key={category.id}
-            className={`btn ${selectedCategory === category.id ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setSelectedCategory(category.id)}
-          >
-            {category.name}
+          <div key={category.id} className="inline-flex">
             <button
-              className="ml-2 text-surface-400 hover:text-surface-500"
+              className={`btn ${selectedCategory === category.id ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setSelectedCategory(category.id)}
+            >
+              {category.name}
+            </button>
+            <span
+              className="ml-2 px-2 py-1 text-surface-400 hover:text-surface-500 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingCategory(category);
@@ -235,8 +236,8 @@ export default function Menus() {
               }}
             >
               Edit
-            </button>
-          </button>
+            </span>
+          </div>
         ))}
       </div>
 

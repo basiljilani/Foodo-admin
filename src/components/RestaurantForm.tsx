@@ -23,6 +23,23 @@ export interface RestaurantFormData {
   estimated_time: string;
   featured: boolean;
   rating?: number;
+  menu_categories?: {
+    name: string;
+    description: string;
+    displayOrder: number;
+    menu_items: {
+      name: string;
+      description: string;
+      price: number;
+      image: string;
+      isAvailable: boolean;
+      preparationTime: string;
+      allergens: string[];
+      spicyLevel: string;
+      isVegetarian: boolean;
+      isVegan: boolean;
+    }[];
+  }[];
 }
 
 const categories = [
@@ -42,7 +59,9 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(initialData?.image || '');
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,45 +124,92 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    setIsSubmitting(true);
 
     try {
-      let imageUrl = initialData?.image || '';
-
+      let imageUrl = imagePreview;
       if (imageFile) {
         imageUrl = await uploadImage(imageFile);
-      } else if (!initialData?.image) {
-        toast.error('Please upload an image');
-        return;
       }
 
-      const data: RestaurantFormData = {
-        name: formData.get('name') as string,
-        description: formData.get('description') as string,
-        image: imageUrl,
-        opening_hours: formData.get('openingHours') as string,
-        tags: selectedTags,
-        category: formData.get('category') as string,
-        price_range: formData.get('priceRange') as string,
-        distance: formData.get('distance') as string,
-        estimated_time: formData.get('estimatedTime') as string,
-        featured: formData.get('featured') === 'on',
-        rating: parseFloat(formData.get('rating') as string) || undefined,
+      // Get form values using refs
+      const form = formRef.current;
+      if (!form) {
+        throw new Error('Form not found');
+      }
+
+      const nameInput = form.querySelector<HTMLInputElement>('[name="name"]');
+      const descriptionInput = form.querySelector<HTMLTextAreaElement>('[name="description"]');
+      const openingHoursInput = form.querySelector<HTMLInputElement>('[name="openingHours"]');
+      const phoneInput = form.querySelector<HTMLInputElement>('[name="phone"]');
+      const emailInput = form.querySelector<HTMLInputElement>('[name="email"]');
+      const addressInput = form.querySelector<HTMLInputElement>('[name="address"]');
+
+      if (!nameInput || !descriptionInput || !openingHoursInput || !phoneInput || !emailInput || !addressInput) {
+        throw new Error('Required form fields not found');
+      }
+
+      // Parse opening hours into JSON format
+      const openingHoursJson = {
+        hours: openingHoursInput.value,
+        // You can expand this structure based on your needs
       };
 
-      if (!data.name || !data.description) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
+      // Create restaurant data matching the database schema
+      const restaurantData = {
+        name: nameInput.value,
+        description: descriptionInput.value,
+        image_url: imageUrl,
+        opening_hours: openingHoursJson,
+        cuisine: selectedTags,
+        delivery_fee: 100, // Default values
+        min_order: 500,
+        phone: phoneInput.value,
+        email: emailInput.value,
+        address: addressInput.value,
+        rating: 0.0,
+        review_count: 0,
+        is_top_restaurant: false
+      };
 
-      onSubmit(data);
+      // First create the restaurant
+      const { data: restaurant, error: restaurantError } = await supabase
+        .from('restaurants')
+        .insert([restaurantData])
+        .select()
+        .single();
+
+      if (restaurantError) throw restaurantError;
+
+      // Create default menu categories
+      const defaultCategories = ['Starters', 'Main Course', 'Desserts', 'Beverages'];
+      const { data: categories, error: categoriesError } = await supabase
+        .from('menu_categories')
+        .insert(
+          defaultCategories.map((name, index) => ({
+            restaurant_id: restaurant.id,
+            name,
+            description: `${name} menu items`,
+            display_order: index + 1
+          }))
+        )
+        .select();
+
+      if (categoriesError) throw categoriesError;
+
+      toast.success('Restaurant created successfully!');
+      onSubmit({
+        ...restaurantData,
+        image: imageUrl
+      });
       onClose();
-      toast.success('Restaurant saved successfully!');
     } catch (error) {
-      toast.error('Failed to save restaurant');
-      console.error('Error saving restaurant:', error);
+      console.error('Error creating restaurant:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create restaurant');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -199,51 +265,45 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
                       {initialData ? 'Edit Restaurant' : 'Add New Restaurant'}
                     </Dialog.Title>
 
-                    <form onSubmit={handleSubmit} className="mt-6">
+                    <form ref={formRef} onSubmit={handleSubmit} className="mt-6 space-y-6">
                       <div className="space-y-6">
                         {/* Image Upload */}
-                        <div className="flex justify-center">
-                          <div className="relative">
-                            <div
-                              className="group relative h-48 w-48 overflow-hidden rounded-xl border-2 border-dashed border-surface-300 hover:border-primary-500 cursor-pointer"
-                              onClick={() => fileInputRef.current?.click()}
-                            >
+                        <div>
+                          <label className="block text-sm font-medium text-surface-700">
+                            Restaurant Image
+                          </label>
+                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-surface-300 border-dashed rounded-lg relative">
+                            <div className="space-y-1 text-center">
                               {imagePreview ? (
                                 <img
                                   src={imagePreview}
-                                  alt="Restaurant preview"
-                                  className="h-full w-full object-cover"
+                                  alt="Preview"
+                                  className="mx-auto h-32 w-32 object-cover rounded-lg"
                                 />
                               ) : (
-                                <div className="flex h-full w-full items-center justify-center">
-                                  <PhotoIcon className="h-12 w-12 text-surface-400" />
-                                </div>
+                                <PhotoIcon className="mx-auto h-12 w-12 text-surface-400" />
                               )}
-                              <div className="absolute inset-0 bg-surface-900/0 group-hover:bg-surface-900/50 transition-all">
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                  <span className="text-white text-sm font-medium">
-                                    {imagePreview ? 'Change Image' : 'Upload Image'}
-                                  </span>
-                                </div>
+                              <div className="flex text-sm text-surface-600">
+                                <label
+                                  htmlFor="image-upload"
+                                  className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500"
+                                >
+                                  <span>Upload a file</span>
+                                  <input
+                                    id="image-upload"
+                                    name="image"
+                                    type="file"
+                                    className="sr-only"
+                                    onChange={handleImageChange}
+                                    accept="image/*"
+                                    ref={fileInputRef}
+                                  />
+                                </label>
                               </div>
-                              {isUploading && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-surface-900/50">
-                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                                </div>
-                              )}
+                              <p className="text-xs text-surface-500">
+                                PNG, JPG, GIF up to 5MB
+                              </p>
                             </div>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              onChange={handleImageChange}
-                            />
-                            <p className="mt-2 text-sm text-surface-500 text-center">
-                              Click to upload or drag and drop
-                              <br />
-                              PNG, JPG up to 5MB
-                            </p>
                           </div>
                         </div>
 
@@ -278,49 +338,14 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
 
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                           <div>
-                            <label htmlFor="category" className="block text-sm font-medium text-surface-700">
-                              Category
-                            </label>
-                            <select
-                              name="category"
-                              id="category"
-                              defaultValue={initialData?.category || 'biryani'}
-                              className="input mt-1"
-                            >
-                              {categories.map(category => (
-                                <option key={category.id} value={category.id}>
-                                  {category.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label htmlFor="priceRange" className="block text-sm font-medium text-surface-700">
-                              Price Range
-                            </label>
-                            <select
-                              name="priceRange"
-                              id="priceRange"
-                              defaultValue={initialData?.price_range || '$$'}
-                              className="input mt-1"
-                            >
-                              {priceRanges.map(range => (
-                                <option key={range} value={range}>
-                                  {range}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
                             <label htmlFor="openingHours" className="block text-sm font-medium text-surface-700">
-                              Opening Hours
+                              Opening Hours *
                             </label>
                             <input
                               type="text"
                               name="openingHours"
                               id="openingHours"
+                              required
                               placeholder="e.g. 11:00 AM - 11:00 PM"
                               defaultValue={initialData?.opening_hours}
                               className="input mt-1"
@@ -328,109 +353,91 @@ export default function RestaurantForm({ isOpen, onClose, onSubmit, initialData 
                           </div>
 
                           <div>
-                            <label htmlFor="estimatedTime" className="block text-sm font-medium text-surface-700">
-                              Estimated Delivery Time
+                            <label htmlFor="phone" className="block text-sm font-medium text-surface-700">
+                              Phone Number *
                             </label>
                             <input
-                              type="text"
-                              name="estimatedTime"
-                              id="estimatedTime"
-                              placeholder="e.g. 20-30 min"
-                              defaultValue={initialData?.estimated_time}
+                              type="tel"
+                              name="phone"
+                              id="phone"
+                              required
+                              placeholder="e.g. +1234567890"
+                              defaultValue={initialData?.phone}
                               className="input mt-1"
                             />
                           </div>
 
                           <div>
-                            <label htmlFor="distance" className="block text-sm font-medium text-surface-700">
-                              Distance
+                            <label htmlFor="email" className="block text-sm font-medium text-surface-700">
+                              Email *
+                            </label>
+                            <input
+                              type="email"
+                              name="email"
+                              id="email"
+                              required
+                              placeholder="restaurant@example.com"
+                              defaultValue={initialData?.email}
+                              className="input mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="address" className="block text-sm font-medium text-surface-700">
+                              Address *
                             </label>
                             <input
                               type="text"
-                              name="distance"
-                              id="distance"
-                              placeholder="e.g. 1.2 km"
-                              defaultValue={initialData?.distance}
+                              name="address"
+                              id="address"
+                              required
+                              placeholder="Full restaurant address"
+                              defaultValue={initialData?.address}
                               className="input mt-1"
                             />
                           </div>
                         </div>
 
-                        {/* Rating */}
-                        <div>
-                          <label htmlFor="rating" className="block text-sm font-medium text-surface-900">
-                            Rating
-                          </label>
-                          <input
-                            type="number"
-                            name="rating"
-                            id="rating"
-                            min="0"
-                            max="5"
-                            step="0.1"
-                            defaultValue={initialData?.rating || 4.5}
-                            className="mt-2 block w-full rounded-md border-0 py-1.5 text-surface-900 shadow-sm ring-1 ring-inset ring-surface-300 placeholder:text-surface-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                          />
-                        </div>
-
                         {/* Tags */}
                         <div>
-                          <label className="block text-sm font-medium text-surface-700 mb-2">
-                            Tags
+                          <label className="block text-sm font-medium text-surface-700">
+                            Cuisine Types *
                           </label>
-                          <div className="flex flex-wrap gap-2">
-                            {['Pakistani', 'BBQ', 'Biryani', 'Traditional', 'Fast Food', 'Karahi', 'Street Food', 'Desserts'].map((tag) => (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {categories.map(category => (
                               <button
-                                key={tag}
+                                key={category.id}
                                 type="button"
-                                onClick={() => handleTagToggle(tag)}
-                                className={`px-3 py-1 rounded-full text-sm ${selectedTags.includes(tag) ? 'bg-primary-500 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'}`}
+                                onClick={() => handleTagToggle(category.id)}
+                                className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
+                                  selectedTags.includes(category.id)
+                                    ? 'bg-primary-100 text-primary-800'
+                                    : 'bg-surface-100 text-surface-800'
+                                }`}
                               >
-                                {tag}
+                                {category.name}
                               </button>
                             ))}
                           </div>
                         </div>
 
-                        {/* Featured Toggle */}
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            name="featured"
-                            id="featured"
-                            defaultChecked={initialData?.featured}
-                            className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-600"
-                          />
-                          <label htmlFor="featured" className="ml-2 text-sm text-surface-700">
-                            Featured Restaurant
-                          </label>
+                        <div className="pt-4 flex justify-end space-x-3">
+                          <button
+                            type="button"
+                            onClick={onClose}
+                            className="btn btn-secondary"
+                            disabled={isSubmitting}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? 'Saving...' : initialData ? 'Save Changes' : 'Create Restaurant'}
+                          </button>
                         </div>
-                      </div>
-
-                      <div className="mt-6 flex justify-end gap-3">
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={onClose}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="btn btn-primary"
-                          disabled={isUploading}
-                        >
-                          {isUploading ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Uploading...
-                            </>
-                          ) : initialData ? (
-                            'Save Changes'
-                          ) : (
-                            'Add Restaurant'
-                          )}
-                        </button>
                       </div>
                     </form>
                   </div>

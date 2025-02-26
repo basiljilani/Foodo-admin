@@ -1,50 +1,117 @@
-# React + TypeScript + Vite
+# Foodo Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The admin dashboard for Foodo, a restaurant management system. This dashboard allows restaurant administrators to manage restaurant listings, including adding, editing, and deleting restaurants.
 
-Currently, two official plugins are available:
+## Features Implemented
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 1. Restaurant Management
+- **Create Restaurants**: Add new restaurants with detailed information
+  - Basic info (name, description)
+  - Images (uploaded to Supabase storage)
+  - Operating details (opening hours, estimated delivery time)
+  - Categorization (tags, category)
+  - Pricing (price range)
+  - Location (distance)
+  - Featured status
 
-## Expanding the ESLint configuration
+- **Edit Restaurants**: Modify existing restaurant information
+- **Delete Restaurants**: Remove restaurants from the system
+- **List View**: View all restaurants in a responsive grid layout
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### 2. Image Management
+- Integrated with Supabase Storage
+- Secure image upload with proper policies
+- Public access for viewing images
+- Automatic URL generation for uploaded images
 
-- Configure the top-level `parserOptions` property like this:
+### 3. Database Integration
+- Connected to Supabase backend
+- Real-time updates
+- Proper data schema with columns:
+  - name
+  - description
+  - image
+  - opening_hours
+  - tags
+  - category
+  - price_range
+  - distance
+  - estimated_time
+  - featured
+  - rating
+  - created_at
+  - updated_at
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+### 4. UI/UX Features
+- Responsive design
+- Toast notifications for actions
+- Loading states
+- Error handling
+- Form validation
+- Image preview
+- Tag selection
+- Category filtering
+
+## Technical Setup
+
+### Environment Variables
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+### Deployment
+- Deployed on AWS Amplify
+- Custom domain setup: admin.hifoodo.com
+- Automatic builds from main branch
+- Client-side routing configured
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+### Database Policies
+- Public access enabled for development
+- Ready for authentication implementation in the future
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## Tech Stack
+- React + TypeScript
+- Vite for build tool
+- Tailwind CSS for styling
+- Supabase for backend and storage
+- AWS Amplify for hosting
+
+## Future Improvements
+1. User Authentication
+2. Role-based access control
+3. Menu management
+4. Order tracking
+5. Analytics dashboard
+6. Multi-language support
+
+## Local Development
+1. Clone the repository
+```bash
+git clone https://github.com/basiljilani/Foodo-admin.git
 ```
+
+2. Install dependencies
+```bash
+cd Foodo-admin
+npm install
+```
+
+3. Set up environment variables
+- Copy `.env.example` to `.env`
+- Add your Supabase credentials
+
+4. Start development server
+```bash
+npm run dev
+```
+
+## Production Build
+```bash
+npm run build
+```
+
+## Related Projects
+- Main App Repository: [Foodo](https://github.com/basiljilani/Foodo)
+- Live Site: [hifoodo.com](https://hifoodo.com)
+- Admin Dashboard: [admin.hifoodo.com](https://admin.hifoodo.com)
